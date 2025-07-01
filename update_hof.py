@@ -1,10 +1,12 @@
 from time import sleep
 import requests
 import re
+import base64
+
 
 
 TOKEN = ''
-SLEEP=2
+SLEEP=1.5
 HEADERS = {
     'Authorization': 'Bearer ' + TOKEN,
     'Content-Type': 'application/json'
@@ -15,39 +17,39 @@ def get_other_titles(repo_link):
     owner = repo_link[3]
     repo = repo_link[4]
 
-    response = requests.get(f'https://api.github.com/repos/{owner}/{repo}/branches', headers=HEADERS)
-    json = response.json()
+    url = f'https://api.github.com/repos/{owner}/{repo}/contents/README.md'
+    response = requests.get(url, headers=HEADERS)
+    aliases = []
 
-    branches = []
-    for item in json:
-        branches.append(item['name'])
+    response = response.json()
+
+    if "content" not in response:
+        return aliases
+
+    response = base64.b64decode(response["content"]).decode('utf-8').splitlines()
 
     aliases = []
     blacklist = ["tema", "surse", "fonts", "assets", "sources", "Description", "How to Play",
-                 "Instrucțiuni de compilare", "OOP Template", "Proiect POO",
-                 "Nu primesc notă pentru că nu am pus titlu și descriere"]
-    for branch in branches:
-        response = requests.get(f'https://raw.githubusercontent.com/{owner}/{repo}/{branch}/README.md', headers=HEADERS)
-        lines = response.text.splitlines()
+                 "Instrucțiuni de compilare", "OOP Template", "Proiect POO", "OOP-Project", "OOP-Template",
+                 "Nu primesc notă pentru că nu am pus titlu și descriere",
+                 "instru"]
 
-        for line in lines:
-            alias = None
-            if line.startswith('# '):
-                alias = line[2:]
-            elif line.startswith('## '):
-                alias = line[3:]
+    for line in response:
+        alias = None
+        if line.startswith('# '):
+            alias = line[2:]
+        elif line.startswith('## '):
+            alias = line[3:]
 
-            skip = False
-            if alias is not None and alias not in aliases:
-                for banned_word in blacklist:
-                    if banned_word.lower() in line.lower():
-                        skip = True
-                        break
-                if skip:
-                    continue
-                aliases.append(alias)
-
-        sleep(SLEEP)
+        skip = False
+        if alias is not None and alias not in aliases:
+            for banned_word in blacklist:
+                if banned_word.lower() in line.lower():
+                    skip = True
+                    break
+            if skip:
+                continue
+            aliases.append(alias)
 
     return aliases
 
@@ -65,7 +67,7 @@ for line in hof.split('\n'):
 
     if match:
         repo_link = match.group(0)
-        line = line.replace('|', '')
+        line = line.rstrip('?| ')
 
         print(f'============== {repo_link} ===============')
 
@@ -89,7 +91,6 @@ for line in hof.split('\n'):
                     print(f'{alias} | ', end='')
                 print('')
 
-            line = line.rstrip(' ')
             line = line + ' | '
 
         except Exception as e:
