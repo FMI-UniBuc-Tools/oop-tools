@@ -6,7 +6,8 @@ from datetime import datetime
 
 
 TOKEN = ''
-SLEEP = 1.5
+SLEEP=1.5
+
 HEADERS = {
     'Authorization': 'Bearer ' + TOKEN,
     'Content-Type': 'application/json'
@@ -83,14 +84,12 @@ for line in hof.split('\n'):
 
     if match:
         repo_link = match.group(0)
-        url = f'https://api.github.com/repos/{repo_link.replace('https://github.com/', '')}/contents/README.md'
+        url = f"https://api.github.com/repos/{repo_link.replace('https://github.com/', '')}/contents/README.md"
         line = line.rstrip('?| ')
 
         project_name = re.search(r'\[([^\]]+)\]', line)
         if project_name:
             project_name = project_name.group(1)
-
-        print(f'============== {repo_link} ===============')
 
         try:
             response = requests.get(url, allow_redirects=True, timeout=15, headers=HEADERS)
@@ -98,11 +97,12 @@ for line in hof.split('\n'):
 
             if 'message' in response and response['message'] == 'Not Found': # Nu a fost gasit README in repo
                 # mai fac un request pentru a verifica daca repo-ul exista
-                response = requests.get(f'https://api.github.com/repos/{repo_link.replace('https://github.com/', '')}',
+                response = requests.get(f"https://api.github.com/repos/{repo_link.replace('https://github.com/', '')}",
                                         allow_redirects=True,
                                         timeout=15,
                                         headers=HEADERS)
 
+                print(f'\n============== {repo_link} ===============')
                 if response.status_code != 200:
                     print(f'{line} is not available.')
 
@@ -110,6 +110,7 @@ for line in hof.split('\n'):
                         line = '~' + line + '~ (dead link)'
                 else:
                     print('README.md not found')
+                print('=======================================\n')
             else:
                 html_url = response['html_url']
                 html_url = re.sub(r'/blob/[^/]+/README\.md$', '', html_url)
@@ -117,7 +118,8 @@ for line in hof.split('\n'):
                 if repo_link != html_url:
                     print(f"Repo-ul {repo_link} a fost mutat la {html_url}")
                     line = line.replace(repo_link, html_url)
-                print(f'{line} is available.')
+                #print(f'{line} is available.')
+                print('.', end='', flush=True)
 
                 available_titles = get_other_titles(response)
 
@@ -132,10 +134,12 @@ for line in hof.split('\n'):
                         break
 
                 if print_titles:
+                    print(f'\n============== {repo_link} ===============')
                     print('Available titles: ', end='')
                     for alias in available_titles:
                         print(f'{alias} | ', end='')
                     print('')
+                    print('=======================================\n')
 
             line = line + ' | '
 
@@ -143,7 +147,6 @@ for line in hof.split('\n'):
             print(f'Eroare la repo-ul {repo_link}')
             print(e.with_traceback())
 
-        print('=======================================\n')
 
         sleep(SLEEP)
 
