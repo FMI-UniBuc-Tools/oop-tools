@@ -7,7 +7,6 @@ from datetime import datetime
 
 TOKEN = ''
 SLEEP=1.5
-
 HEADERS = {
     'Authorization': 'Bearer ' + TOKEN,
     'Content-Type': 'application/json'
@@ -150,7 +149,7 @@ for line in hof.split('\n'):
 
         sleep(SLEEP)
 
-    line = line.rstrip(' ')
+    line = line.strip(' ')
     if line == '':
         if document_lines[-1] != '':
             if is_current_year == False:
@@ -160,6 +159,9 @@ for line in hof.split('\n'):
                 is_current_year = False
 
     document_lines.append(line)
+
+for i in range(len(document_lines)):
+    document_lines[i] = document_lines[i].strip(' ')
 
 with open('./HoF.md', 'w', encoding='utf-8') as f:
     f.write('\n'.join(document_lines))
