@@ -5,7 +5,7 @@ import base64
 from datetime import datetime
 
 
-TOKEN = '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'
+TOKEN = ''
 SLEEP = 1.5
 HEADERS = {
     'Authorization': 'Bearer ' + TOKEN,
