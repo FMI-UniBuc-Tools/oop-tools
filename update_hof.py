@@ -158,6 +158,5 @@ for line in hof.split('\n'):
 
     document_lines.append(line)
 
-
 with open('./HoF.md', 'w', encoding='utf-8') as f:
     f.write('\n'.join(document_lines))
