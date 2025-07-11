@@ -29,7 +29,11 @@ def get_other_titles(response):
         "Nu primesc notă pentru că nu am pus titlu și descriere",
         "instru" # (instru)ctiuni / (instru)ctions
         "Prerequisites", "API", "Download", "Important", "Update",
-        "OOP_Project"
+        "OOP_Project", "Usage", "Document", #Document(are)/(tation)
+        "Known issues", "Tasklist", "Basic Functionality", "Qubits", "Classic Bits", "Quantum Gates", "Quantum Circuits",
+        "Probability Engine", "Visualisation", "Overview", "Guide", "Requirement", #Requirement(s)
+        "Getting started", "About", "Getting it to run", "Install", "run", "Licence", "License", "Feature",
+        "requirments", "texture", "libraries", "descriere", "pisicile", "utilizare"
     ]
 
     for line in content_lines:
@@ -43,6 +47,15 @@ def get_other_titles(response):
 
     return aliases
 
+def get_README(url, readme='README.md'):
+    url = url + f"/contents/{readme}"
+    response = requests.get(url, allow_redirects=True, timeout=15, headers=HEADERS)
+    response = response.json()
+
+    if 'message' in response and response['message'] == 'Not Found':  # Nu a fost gasit `README.md` / `readme.md` in repo
+        return -1
+
+    return response
 
 with open('./HoF.md', encoding='utf-8') as f:
     hof = f.read()
@@ -54,36 +67,16 @@ is_current_year = False
 
 for line in hof.split('\n'):
     match = re.search(r'https://github.com/[^\s\)\]]+', line)
-    """
-    url = {
-        name: string,
-        path: string,
-        sha: string,
-        size: int,
-        url: string,
-        html_url: string,
-        git_url: string,
-        download_url: string,
-        type: string,
-        content: string,
-        encoding: string,
-        _links {
-            self: string,
-            git: string,
-            html: string,
-        }
-    }
-    """
 
     is_available = True
 
-    line_year_match = re.search(r'\*\*\d{4}-(\d{4})\*\*', line)
+    line_year_match = re.search(r'\*\*(\d{4})-\d{4}\*\*', line)
     if line_year_match and line_year_match.group(1) == CURRENT_YEAR and is_current_year == False:
         is_current_year = True
 
     if match:
         repo_link = match.group(0)
-        url = f"https://api.github.com/repos/{repo_link.replace('https://github.com/', '')}/contents/README.md"
+        repo_handle = re.match(r'https://github\.com/([^/]+/[^/]+)', repo_link).group(1)
         line = line.rstrip('?| ')
 
         project_name = re.search(r'\[([^\]]+)\]', line)
@@ -91,37 +84,40 @@ for line in hof.split('\n'):
             project_name = project_name.group(1)
 
         try:
-            response = requests.get(url, allow_redirects=True, timeout=15, headers=HEADERS)
-            response = response.json()
+            response_readme_available = get_README(f"https://api.github.com/repos/{repo_handle}")
 
-            if 'message' in response and response['message'] == 'Not Found': # Nu a fost gasit README in repo
+            if response_readme_available == -1:
+                response_readme_available = get_README(f"https://api.github.com/repos/{repo_handle}", readme="readme.md")
+
+            if response_readme_available == -1: # Nu a fost gasit `README.md` / `readme.md` in repo
+
                 # mai fac un request pentru a verifica daca repo-ul exista
-                response = requests.get(f"https://api.github.com/repos/{repo_link.replace('https://github.com/', '')}",
+                response_repo_available = requests.get(f"https://api.github.com/repos/{repo_handle}",
                                         allow_redirects=True,
                                         timeout=15,
                                         headers=HEADERS)
 
                 print(f'\n============== {repo_link} ===============')
-                if response.status_code != 200:
+                if response_repo_available.status_code != 200: # repo-ul nu exista
                     print(f'{line} is not available.')
 
                     if '~' not in line: # daca nu a fost deja taiat
                         line = '~' + line + '~ (dead link)'
-                else:
+                else: # repo-ul exista, dar nu are readme
                     print('README.md not found')
                 print('=======================================\n')
             else:
-                html_url = response['html_url']
-                html_url = re.sub(r'/blob/[^/]+/README\.md$', '', html_url)
+                html_url = response_readme_available['html_url']
+                html_url = re.sub(r'/blob/[^/]+/README\.md$', '', html_url, flags=re.IGNORECASE)
 
                 if repo_link != html_url:
-                    print(f"Repo-ul {repo_link} a fost mutat la {html_url}")
+                    print(f"\nRepo-ul {repo_link} a fost mutat la {html_url}")
                     line = line.replace(repo_link, html_url)
+
                 #print(f'{line} is available.')
                 print('.', end='', flush=True)
 
-                available_titles = get_other_titles(response)
-
+                available_titles = get_other_titles(response_readme_available)
                 print_titles = True
 
                 if len(available_titles) == 0:
@@ -135,17 +131,15 @@ for line in hof.split('\n'):
                 if print_titles:
                     print(f'\n============== {repo_link} ===============')
                     print('Available titles: ', end='')
-                    for alias in available_titles:
-                        print(f'{alias} | ', end='')
+                    print(*available_titles, sep=" | ", end='')
                     print('')
                     print('=======================================\n')
 
             line = line + ' | '
 
         except Exception as e:
-            print(f'Eroare la repo-ul {repo_link}')
+            print(f'\nEroare la repo-ul {repo_link}')
             print(e.with_traceback())
-
 
         sleep(SLEEP)
 
