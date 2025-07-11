@@ -27,7 +27,7 @@ def get_other_titles(response):
         "Description", "How to Play",
         "Instrucțiuni de compilare", "OOP Template", "Proiect POO", "OOP-Project", "OOP-Template",
         "Nu primesc notă pentru că nu am pus titlu și descriere",
-        "instru" # (instru)ctiuni / (instru)ctions
+        "instru", # (instru)ctiuni / (instru)ctions
         "Prerequisites", "API", "Download", "Important", "Update",
         "OOP_Project", "Usage", "Document", #Document(are)/(tation)
         "Known issues", "Tasklist", "Basic Functionality", "Qubits", "Classic Bits", "Quantum Gates", "Quantum Circuits",
