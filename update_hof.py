@@ -62,6 +62,13 @@ with open('./HoF.md', encoding='utf-8') as f:
 
 print('Finished reading HoF.md')
 
+dead_links = [
+    "https://github.com/radumcostache/TravelPlanner",
+    "https://github.com/marius004/oop-project",
+    "https://github.com/vladciocoiu/proiect-poo",
+    "https://github.com/radu-filipescu/Drinkeer",
+]
+
 document_lines = []
 is_current_year = False
 
@@ -78,68 +85,68 @@ for line in hof.split('\n'):
         repo_link = match.group(0)
         repo_handle = re.match(r'https://github\.com/([^/]+/[^/]+)', repo_link).group(1)
         line = line.rstrip('?| ')
+        if repo_link not in dead_links:
+            project_name = re.search(r'\[([^\]]+)\]', line)
+            if project_name:
+                project_name = project_name.group(1)
 
-        project_name = re.search(r'\[([^\]]+)\]', line)
-        if project_name:
-            project_name = project_name.group(1)
+            try:
+                response_readme_available = get_README(f"https://api.github.com/repos/{repo_handle}")
 
-        try:
-            response_readme_available = get_README(f"https://api.github.com/repos/{repo_handle}")
+                if response_readme_available == -1:
+                    response_readme_available = get_README(f"https://api.github.com/repos/{repo_handle}", readme="readme.md")
 
-            if response_readme_available == -1:
-                response_readme_available = get_README(f"https://api.github.com/repos/{repo_handle}", readme="readme.md")
+                if response_readme_available == -1: # Nu a fost gasit `README.md` / `readme.md` in repo
 
-            if response_readme_available == -1: # Nu a fost gasit `README.md` / `readme.md` in repo
+                    # mai fac un request pentru a verifica daca repo-ul exista
+                    response_repo_available = requests.get(f"https://api.github.com/repos/{repo_handle}",
+                                            allow_redirects=True,
+                                            timeout=15,
+                                            headers=HEADERS)
 
-                # mai fac un request pentru a verifica daca repo-ul exista
-                response_repo_available = requests.get(f"https://api.github.com/repos/{repo_handle}",
-                                        allow_redirects=True,
-                                        timeout=15,
-                                        headers=HEADERS)
-
-                print(f'\n============== {repo_link} ===============')
-                if response_repo_available.status_code != 200: # repo-ul nu exista
-                    print(f'{line} is not available.')
-
-                    if '~' not in line: # daca nu a fost deja taiat
-                        line = '~' + line + '~ (dead link)'
-                else: # repo-ul exista, dar nu are readme
-                    print('README.md not found')
-                print('=======================================\n')
-            else:
-                html_url = response_readme_available['html_url']
-                html_url = re.sub(r'/blob/[^/]+/README\.md$', '', html_url, flags=re.IGNORECASE)
-
-                if repo_link != html_url:
-                    print(f"\nRepo-ul {repo_link} a fost mutat la {html_url}")
-                    line = line.replace(repo_link, html_url)
-
-                #print(f'{line} is available.')
-                print('.', end='', flush=True)
-
-                available_titles = get_other_titles(response_readme_available)
-                print_titles = True
-
-                if len(available_titles) == 0:
-                    print_titles = False
-
-                for title in available_titles:
-                    if project_name.lower() in title.lower():
-                        print_titles = False
-                        break
-
-                if print_titles:
                     print(f'\n============== {repo_link} ===============')
-                    print('Available titles: ', end='')
-                    print(*available_titles, sep=" | ", end='')
-                    print('')
-                    print('=======================================\n')
+                    if response_repo_available.status_code != 200: # repo-ul nu exista
+                        print(f'{line} is not available.')
 
-            line = line + ' | '
+                        if '~' not in line: # daca nu a fost deja taiat
+                            line = '~' + line + '~ (dead link)'
+                    else: # repo-ul exista, dar nu are readme
+                        print('README.md not found')
+                    print('=======================================')
+                else:
+                    html_url = response_readme_available['html_url']
+                    html_url = re.sub(r'/blob/[^/]+/README\.md$', '', html_url, flags=re.IGNORECASE)
 
-        except Exception as e:
-            print(f'\nEroare la repo-ul {repo_link}')
-            print(e.with_traceback())
+                    if repo_link != html_url:
+                        print(f"\nRepo-ul {repo_link} a fost mutat la {html_url}")
+                        line = line.replace(repo_link, html_url)
+
+                    #print(f'{line} is available.')
+                    print('.', end='', flush=True)
+
+                    available_titles = get_other_titles(response_readme_available)
+                    print_titles = True
+
+                    if len(available_titles) == 0:
+                        print_titles = False
+
+                    for title in available_titles:
+                        if project_name.lower() in title.lower():
+                            print_titles = False
+                            break
+
+                    if print_titles:
+                        print(f'\n============== {repo_link} ===============')
+                        print('Available titles: ', end='')
+                        print(*available_titles, sep=" | ", end='')
+                        print('')
+                        print('=======================================')
+
+            except Exception as e:
+                print(f'\nEroare la repo-ul {repo_link}')
+                print(e.with_traceback())
+
+        line = line + ' | '
 
         sleep(SLEEP)
 
